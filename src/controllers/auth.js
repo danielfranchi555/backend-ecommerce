@@ -17,19 +17,34 @@ controller.register = (req, res) => {
                 res.status(401).json({ message: 'email already exist' });
             } else {
                 const hashedPassword = await bcrypt.hash(data.password, 8);
-                const user = {
+
+                const userSavedDb = {
                     name: data.name,
                     surname: data.surname,
                     email: data.email,
                     password: hashedPassword,
                 };
+
+                const userSaveCookie = {
+                    name: data.name,
+                    surname: data.surname,
+                    email: data.email,
+                };
                 conection.query(
                     'INSERT INTO users set ?',
-                    user,
+                    userSavedDb,
                     (error, result) => {
                         if (error) throw error;
-
-                        res.json(result);
+                        const token = jwt.sign(
+                            userSaveCookie,
+                            process.env.JWT_KEY,
+                            {
+                                expiresIn: '5d',
+                            },
+                        );
+                        console.log(token);
+                        res.cookie('access_token', token);
+                        res.json({ result, token });
                     },
                 );
             }
@@ -56,12 +71,9 @@ controller.login = (req, res) => {
                     surname: result[0].surname,
                 };
                 const token = jwt.sign(userObject, process.env.JWT_KEY, {
-                    expiresIn: 5,
+                    expiresIn: '5d',
                 });
-                res.cookie('access_token', token, {
-                    httpOnly: true,
-                    maxAge: 5000,
-                });
+                res.cookie('access_token', token);
                 res.status(200).json('session correct');
             } else {
                 res.status(401).json('email o contraseña incorrectos');
