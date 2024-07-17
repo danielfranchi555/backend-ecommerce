@@ -1,15 +1,29 @@
 const controler = {};
-const conection = require('../db/conectionDb');
-const jwt = require('jsonwebtoken');
+const pool = require('../db/conectionDb'); // Usando la versión que soporta promesas
 
-controler.getProducts = (req, res) => {
+controler.getProducts = async (req, res) => {
     try {
-        conection.query('SELECT * FROM products', (error, result) => {
-            if (error) throw error;
-            res.json(result);
-        });
+        const [rows] = await pool.query(
+            'SELECT * FROM products JOIN category ON products.category_id = category.id_category;',
+        );
+        res.json(rows);
     } catch (error) {
-        res.status(500).json({ message: error });
+        console.error(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+controler.getProduct = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM products WHERE products.id_product = ?',
+            [id],
+        );
+        res.json(rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: error.message });
     }
 };
 
